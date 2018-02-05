@@ -1,0 +1,172 @@
+@font-face {
+  font-family: "Thintel";
+  src: url("fonts/Thintel.ttf");
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+.enforce-43-ratio {
+  width: 100%;
+  padding-bottom: 75%;
+}
+
+.game {
+  position: relative;
+  background-color: black;
+  margin-right: auto;
+  margin-left: auto;
+  width: 60%;
+  min-width: 400px;
+}
+
+.screen {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+}
+
+.splash-screen {
+  display: flex;
+  align-items: center;
+}
+
+.ingame-screen {
+  background-color: #015001;
+}
+
+.overlay {
+  background-color: transparent;
+  position: absolute;
+  z-index: 0;
+  transition: background-color 2s;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+.overlay--black {
+  background-color: black;
+}
+
+.dot {
+  position:absolute;
+  top: 0;
+  left: 0;
+}
+
+.dot--size1 {
+  background-color: #fff21c;
+  border-radius: 2px;
+}
+
+.dot--size2 {
+  background-color: #d6cc2f;
+  border-radius: 3px;
+}
+
+.dot--size3 {
+  background-color: #f7ee64;
+  border-radius: 4px;
+}
+
+.dot--snake1 {
+  background-color: #bbec63;
+}
+
+.dot--snake2 {
+  background-color: #a0ce93;
+  
+}
+
+.dot--snake3 {
+  background-color: #c8e674;
+}
+
+.menu {
+  width: 50%;
+  margin-right: auto;
+  margin-left: auto;
+  background-color: blue;
+  padding: 10px;
+}
+
+.menu__item {
+  background-color: lightblue;
+  padding: 10px;
+  margin: 5px;
+  cursor: pointer;
+  font-family: "Thintel", sans-serif;
+  font-size: 30px;
+}
+
+.menu__item:hover {
+  background-color: #d4e2e6;
+}
+
+.menu__item:focus {
+  background-color: #58d8c3;
+}
+
+.menu__item:focus:hover {
+  background-color: #9bd8ce;
+}
+
+.overlay-text {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  align-items: center;
+  justify-content: center;
+  align-content: center;
+  opacity: 1;
+  transition: opacity 0.5s;
+  z-index: 9999999;
+}
+
+.overlay-text--entering {
+  opacity: 0;
+}
+
+.overlay-text--leaving {
+  opacity: 0;
+}
+
+.overlay-text .label {
+  font-family: "Thintel", sans-serif;
+  font-size: 30px;
+  display: block;
+  color: yellow;
+  background-color: red;
+  flex-grow: 0;
+  padding: 5px;
+  margin: 5px;
+}
+
+.level-win-overlay {
+  position: absolute;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  align-content: center;
+}
+
+.level-win-overlay .menu {
+  height: auto;
+  margin: 20px;
+}
+
+.level-win-overlay .overlay-text {
+  height: auto;
+  margin: 20px;
+}

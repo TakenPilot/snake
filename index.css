@@ -20,6 +20,7 @@ body {
   margin-left: auto;
   width: 60%;
   min-width: 400px;
+  overflow: hidden;
 }
 
 .screen {
@@ -38,6 +39,49 @@ body {
 
 .ingame-screen {
   background-color: #015001;
+}
+
+.credits-screen {
+  font-family: "Thintel", sans-serif;
+  font-size: 50px;
+  background-color: #03004c;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  align-items: flex-start;
+  justify-content: space-evenly;
+  align-content: flex-start;
+  color: #fffe00;
+  padding: 20px;
+  height: 100%;
+  box-sizing: border-box
+}
+
+.credits-screen__title {
+  display: block;
+  text-decoration: underline;
+  margin-bottom: 30px;
+}
+
+.credits-screen__description {
+  display: block;
+  max-width: 400px;
+  align-self: center;
+}
+
+.credits-screen__primary-button {
+  display: inline-block;
+  background-color: #4db352;
+  align-self: flex-end;
+  padding: 10px;
+  border: solid 5px #fffe00;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.credits-screen__primary-button:hover {
+  border: solid 5px #ffffaf;
+  color: #ffffaf;
 }
 
 .overlay {

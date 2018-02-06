@@ -70,13 +70,15 @@ const i18nText = {
   en: {
     PLAY: 'Play the game!',
     OPTIONS: 'See all the options...',
-    CREDITS: 'Show who what\'s what?',
+    CREDITS: 'Why who what now?',
     READY: 'Ready?',
     YOU_WIN: 'So good!',
     DEATH: 'You\'ve accomplished death.',
     NEXT_LEVEL: 'Next level!',
     PLAY_AGAIN: 'Play this level once again',
-    MAIN_MENU: 'Main Menu'
+    MAIN_MENU: 'Main Menu',
+    CREDITS_DESCRIPTION: 'To that one time I learned how Chrome can edit functions as they\'re running, and coffee.',
+    OKAY: 'Totes.'
   }
 }
 
@@ -136,6 +138,7 @@ function createEl(className, tagName) {
 
 function createTextEl(className, labelTag) {
   const textEl = createEl('label', 'span');
+  textEl.classList.add(className);
   textEl.appendChild(document.createTextNode(t(labelTag)));
   return textEl;
 }
@@ -153,6 +156,17 @@ function createMenuEl(items, {onFocus, onClick}) {
     el.appendChild(itemEl);
   }
 
+  return el;
+}
+
+function createPrimaryButton(className, {labelTag, onClick}) {
+  const el = createEl('button');
+  el.classList.add(className);
+  el.setAttribute('tabindex', '0');
+  el.addEventListener('click', onClick);
+  const textEl = createEl('button__label', 'span');
+  textEl.appendChild(document.createTextNode(t(labelTag)));
+  el.appendChild(textEl);
   return el;
 }
 
@@ -526,6 +540,31 @@ function SplashScreen() {
   }
 }
 
+function CreditsScreen() {
+  applyEmitter(this);
+  const screenConfig = config.creditsScreen;
+  const handleSelection = () => this.emit('end', {to: 'splash'});
+  const keyboardCodes = {
+    'Space': handleSelection,
+    'Enter': handleSelection,
+  }
+
+  const screen = new Screen(keyboardCodes);
+  const el = screen.getEl();
+  el.classList.add('credits-screen');
+  el.appendChild(createTextEl('credits-screen__title', 'CREDITS'));
+  el.appendChild(createTextEl('credits-screen__description', 'CREDITS_DESCRIPTION'));
+  const primaryButton = createPrimaryButton('credits-screen__primary-button', {labelTag: 'OKAY', onClick: handleSelection});
+  el.appendChild(primaryButton); 
+
+  this.getEl = () => screen.getEl();
+  this.start = () => screen.bindWindow();
+  this.releaseWindow = screen.releaseWindow;
+  this.destroy = function () {
+    screen.destroy();
+  }
+}
+
 function InGameScreen() {
   const levelConfig = config.level;
   var levelWidth = levelConfig.width;
@@ -558,9 +597,7 @@ function InGameScreen() {
       teardown();
       setup();
     },
-    mainMenu: () => {
-      this.emit('end', {to: 'splash'})
-    }
+    mainMenu: () => this.emit('end', {to: 'splash'})
   }
 
   const keyboardCodes = {
@@ -840,7 +877,8 @@ function Game(containerEl) {
   const overlay = new Overlay(el);
   const screens = {
     splash: SplashScreen,
-    ingame: InGameScreen
+    ingame: InGameScreen,
+    credits: CreditsScreen
   }
   const InitialScreen = screens[config.initialScreen];
 

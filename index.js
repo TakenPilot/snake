@@ -50,10 +50,16 @@ const config = {
     ]
   },
   level: {
-    width: 28,
-    height: 21,
+    width: 16,
+    height: 12,
     numDots: 2,
-    startingPosition: {x: 20, y: 20}
+    dotPercentage: 0.08,
+    widthIncrease: 4,
+    heightIncrease: 3,
+    numDotsIncrease: 5,
+    dotPercentageIncrease: 0.03,
+    dotPercentageMax: 0.5,
+    startingPosition: {x: 14, y: 10}
   },
   snake: {
     initialSize: 3,
@@ -77,7 +83,7 @@ const i18nText = {
     NEXT_LEVEL: 'Next level!',
     PLAY_AGAIN: 'Play this level once again',
     MAIN_MENU: 'Main Menu',
-    CREDITS_DESCRIPTION: 'To that one time I learned how Chrome can edit functions as they\'re running, and coffee.',
+    CREDITS_DESCRIPTION: 'The challedge? No build system of any kind, client-side only, no outside libraries in any form.  ...Challenge accepted.',
     OKAY: 'Totes.'
   }
 }
@@ -570,6 +576,7 @@ function InGameScreen() {
   var levelWidth = levelConfig.width;
   var levelHeight = levelConfig.height;
   var levelNumDots = levelConfig.numDots;
+  var dotPercentage = levelConfig.dotPercentage;
   var levelNumber = 1;
   var movementInterval = config.snake.movementInterval;
   var level;
@@ -584,13 +591,22 @@ function InGameScreen() {
   const menuBehaviors = {
     nextLevel: () => {
       teardown();
-      levelNumDots += 5;
+      levelNumDots += levelConfig.numDotsIncrease;
       levelNumber += 1;
-      if (levelNumber % 5 === 0) {
-        levelWidth += 4;
-        levelHeight += 3;
+      var totalDotPercentage = levelNumDots / (levelWidth * levelHeight);
+      if (totalDotPercentage > dotPercentage && totalDotPercentage < levelConfig.dotPercentageMax) {
+        levelWidth += levelConfig.widthIncrease;
+        levelHeight += levelConfig.heightIncrease;
+        dotPercentage += levelConfig.dotPercentageIncrease;
       }
       movementInterval = Math.floor(movementInterval * 0.95);
+      console.log('increased challenge', {
+        levelNumber,
+        levelNumDots,
+        levelWidth,
+        levelHeight,
+        dotPercentage: totalDotPercentage,
+      });
       setup();
     },
     playAgain: () => {
@@ -762,17 +778,10 @@ function Snake(startPosition, level, movementInterval, dotFactory) {
     dy = ndy;
   }
 
-  var z = 0;
-
   this.update = passed => {
     // if dot exists, eat it, otherwise move
     totalPassed += passed;
     if (totalPassed > movementInterval) {
-      z++;
-      if (z % 10 === 0) {
-        z = 0;
-        console.log(passed);
-      }
       totalPassed = 0;
       const {x, y} = dots[0].getPosition();
       const nx = x + dx;

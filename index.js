@@ -83,7 +83,7 @@ const i18nText = {
     NEXT_LEVEL: 'Next level!',
     PLAY_AGAIN: 'Play this level once again',
     MAIN_MENU: 'Main Menu',
-    CREDITS_DESCRIPTION: 'The challedge? No build system of any kind, client-side only, no outside libraries in any form.  ...Challenge accepted.',
+    CREDITS_DESCRIPTION: 'The challedge? No build system of any kind, client-side only, no IDE, no outside libraries in any form.  ...Challenge accepted.',
     OKAY: 'Totes.'
   }
 }

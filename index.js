@@ -642,7 +642,7 @@ function InGameScreen() {
       }
     }
 
-    snake.on('death', levelOverlay(config.level));
+    snake.on('death', levelOverlay(config.levelLose));
     level.on('empty', levelOverlay(config.levelWin));
   }
 

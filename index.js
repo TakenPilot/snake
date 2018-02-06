@@ -20,11 +20,25 @@ const config = {
     ]
   },
   levelWin: {
+    labelTag: 'YOU_WIN',
     menuItems: [
       {
         label: 'NEXT_LEVEL',
         behavior: 'nextLevel'
       },
+      {
+        label: 'PLAY_AGAIN',
+        behavior: 'playAgain'
+      },
+      {
+        label: 'MAIN_MENU',
+        behavior: 'mainMenu'
+      }
+    ]
+  },
+  levelLose: {
+    labelTag: 'DEATH',
+    menuItems: [
       {
         label: 'PLAY_AGAIN',
         behavior: 'playAgain'
@@ -43,7 +57,7 @@ const config = {
   },
   snake: {
     initialSize: 3,
-    movementInterval: 150,
+    movementInterval: 150000000,
     safeZone: 3,
     modifiers: ['snake1', 'snake2', 'snake3']
   },
@@ -285,12 +299,11 @@ function OverlayText(containerEl, labelTag) {
   containerEl.appendChild(el);
 }
 
-function LevelWinOverlay(containerEl) {
+function OverlayTextMenu(containerEl, config) {
   applyEmitter(this);
-  const levelWinConfig = config.levelWin;
   const el = createEl('level-win-overlay');
-  const overlayText = new OverlayText(el, 'YOU_WIN');
-  const menu = new Menu(levelWinConfig.menuItems, el);
+  const overlayText = new OverlayText(el, config.labelTag);
+  const menu = new Menu(config.menuItems, el);
   const handleNextItem = () => menu.selectNext();
   const handlePrevItem = () => menu.selectPrev();
   const handleSelection = () => this.emit('end', {to: menu.getSelectedItem().behavior});
@@ -309,14 +322,9 @@ function LevelWinOverlay(containerEl) {
   menu.on('click', handleSelection);
 
   const screen = new Screen(keyboardCodes);
-
   this.bindWindow = screen.bindWindow;
   this.releaseWindow = screen.releaseWindow;
-
-  this.update = passed => {
-    overlayText.update(passed);
-  }
-
+  this.update = passed => overlayText.update(passed);
   this.destroy = () => {
     containerEl.removeChild(el);
     screen.destroy();
@@ -523,7 +531,7 @@ function InGameScreen() {
   var levelWidth = levelConfig.width;
   var levelHeight = levelConfig.height;
   var levelNumDots = levelConfig.numDots;
-  var level = 1;
+  var levelNumber = 1;
   var movementInterval = config.snake.movementInterval;
   var level;
   var snake;
@@ -538,12 +546,12 @@ function InGameScreen() {
     nextLevel: () => {
       teardown();
       levelNumDots += 5;
-      level += 1;
-      if (level % 5 === 0) {
+      levelNumber += 1;
+      if (levelNumber % 5 === 0) {
         levelWidth += 4;
         levelHeight += 3;
       }
-      movementInterval = Math.floor(movementInterval * 0.9);
+      movementInterval = Math.floor(movementInterval * 0.95);
       setup();
     },
     playAgain: () => {
@@ -581,26 +589,24 @@ function InGameScreen() {
     snake = new Snake(levelConfig.startingPosition, level, movementInterval, dotFactory);
     runtime.addEntity(snake);
 
-    snake.on('death', e => {
-      runtime.removeEntity(snake);
-      runtime.addEntity(new OverlayText(el, 'DEATH'));
-    });
+    function levelOverlay(levelOverlayConfig) {
+      return function () {
+        runtime.removeEntity(snake);
+        const levelOverlay = new OverlayTextMenu(el, levelOverlayConfig);
+        levelOverlay.once('end', e => {
+          levelOverlay.destroy();
+          screen.bindWindow();
+          runtime.removeEntity(levelOverlay);
+          menuBehaviors[e.to]();
+        });
+        screen.releaseWindow();
+        levelOverlay.bindWindow();
+        runtime.addEntity(levelOverlay);
+      }
+    }
 
-    level.on('empty', () => {
-      runtime.removeEntity(snake);
-      const levelWinOverlay = new LevelWinOverlay(el);
-      levelWinOverlay.once('end', e => {
-        levelWinOverlay.destroy();
-        screen.bindWindow();
-        runtime.removeEntity(levelWinOverlay);
-        menuBehaviors[e.to]();
-      })
-
-      screen.releaseWindow();
-      levelWinOverlay.bindWindow();
-
-      runtime.addEntity(levelWinOverlay);
-    })
+    snake.on('death', levelOverlay(config.level));
+    level.on('empty', levelOverlay(config.levelWin));
   }
 
   function teardown() {
@@ -719,10 +725,17 @@ function Snake(startPosition, level, movementInterval, dotFactory) {
     dy = ndy;
   }
 
+  var z = 0;
+
   this.update = passed => {
     // if dot exists, eat it, otherwise move
     totalPassed += passed;
     if (totalPassed > movementInterval) {
+      z++;
+      if (z % 10 === 0) {
+        z = 0;
+        console.log(passed);
+      }
       totalPassed = 0;
       const {x, y} = dots[0].getPosition();
       const nx = x + dx;
@@ -759,18 +772,31 @@ function Snake(startPosition, level, movementInterval, dotFactory) {
 }
 
 function Runtime(entities) {
-  const updateInterval = config.runtime.updateInterval;
-  const intervalRef = setInterval(update, updateInterval);
+  var lastPassed;
+  var killerId;
   var isPaused = false;
-  var lastTime = Date.now();
 
-  function update() {
-    const now = Date.now();
-    const passed = now - lastTime;
-    lastTime = now;
+  // ping pong-like functions (A and B) prevent a memory leak in chrome when using requestAnimationFrame
+  function updateA(totalPassed) {
+    const passed = Math.floor((totalPassed - lastPassed) * 1000000);
+    lastPassed = totalPassed;
+    
     if (!isPaused) {
       entities.forEach(entity => entity.update(passed));
     }
+
+    cancelId = window.requestAnimationFrame(updateB);
+  }
+
+  function updateB(totalPassed) {
+    const passed = Math.floor((totalPassed - lastPassed) * 1000000);
+    lastPassed = totalPassed;
+    
+    if (!isPaused) {
+      entities.forEach(entity => entity.update(passed));
+    }
+
+    cancelId = window.requestAnimationFrame(updateA);
   }
 
   this.addEntity = entity => {
@@ -797,8 +823,14 @@ function Runtime(entities) {
   }
 
   this.destroy = () => {
-    clearInterval(intervalRef)
+    window.cancelAnimationFrame(cancelId)
+    isKilled = true;
   }
+
+  window.requestAnimationFrame(passed => {
+    lastPassed = passed;
+    window.requestAnimationFrame(updateA);
+  });
 }
 
 function Game(containerEl) {

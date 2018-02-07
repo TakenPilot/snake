@@ -10,8 +10,8 @@ const config = {
         behavior: 'playGame'
       },
       {
-        label: 'OPTIONS',
-        behavior: 'showOptions'
+        label: 'SCORE',
+        behavior: 'showScore'
       },
       {
         label: 'CREDITS',
@@ -75,6 +75,7 @@ const config = {
 const i18nText = {
   en: {
     PLAY: 'Play the game!',
+    SCORE: 'Highest scores (so far)',
     OPTIONS: 'See all the options...',
     CREDITS: 'Why who what now?',
     READY: 'Ready?',
@@ -84,12 +85,18 @@ const i18nText = {
     PLAY_AGAIN: 'Play this level once again',
     MAIN_MENU: 'Main Menu',
     CREDITS_DESCRIPTION: 'The challedge? No build system of any kind, client-side only, no IDE, no outside libraries in any form.  ...Challenge accepted.',
-    OKAY: 'Totes.'
+    OKAY: 'Totes.',
+    HIGHEST_LEVEL: 'Highest Level',
+    MOVEMENT_SPEED: 'Movement Speed',
+    NUMBER_OF_DOTS: 'Number of Dots',
+    SCREEN_SIZE: 'Screen Size',
+    PERSONAL_BEST: 'My Personal Best',
+    DOT_PERCENTAGE: 'Dot Percentage'
   }
 }
 
 function t(id) {
-  return i18nText['en'][id];
+  return i18nText['en'][id] || id;
 }
 
 function applyEmitter(target) {
@@ -135,6 +142,62 @@ function applyEmitter(target) {
     }
   }
 }
+
+/* static */
+const StatKeeper = (function () {
+  const key = 'snake';
+
+  function get() {
+    var stats;
+    try {
+      stats = JSON.parse(atob(window.localStorage.getItem(key)));
+    } catch (ex) {
+      console.warn('unable to load old stats from localStorage, assuming new player');
+      stats = {};
+    }
+    return stats;
+  }
+
+  function save(latest) {
+    try {
+      window.localStorage.setItem(key, btoa(JSON.stringify(latest)));
+    } catch (ex) {
+      console.warn('unable to write to localStorage');
+    }
+  }
+
+  function updateMax(dest, source) {
+    var updatedKeys = [];
+    const keys = Object.keys(source);
+
+
+    for(var i = 0; i < keys.length; i++) {
+      const key = keys[i];
+      if (!dest[key] || source[key] > dest[key]) {
+        dest[key] = source[key];
+        updatedKeys.push(key);
+      }
+    }
+
+    return updatedKeys;
+  }
+
+  function saveHighest(latest) {
+    const known = get();
+    var updatedKeys = updateMax(known, latest);
+
+    if (updatedKeys.length) {
+      save(known);
+    }
+
+    return updatedKeys;
+  }
+
+  return {
+    get,
+    saveHighest
+  }
+}())
 
 function createEl(className, tagName) {
   const div = document.createElement(tagName || 'div');
@@ -508,7 +571,7 @@ function SplashScreen() {
   const menuBehaviors = {
     'playGame': () => this.emit('end', {to: 'ingame'}),
     'showCredits': () => this.emit('end', {to: 'credits'}),
-    'showOptions': () => this.emit('end', {to: 'options'}),
+    'showScore': () => this.emit('end', {to: 'score'}),
   };
   const handleNextItem = () => menu.selectNext();
   const handlePrevItem = () => menu.selectPrev();
@@ -540,6 +603,46 @@ function SplashScreen() {
     screen.bindWindow();
   }
 
+  this.releaseWindow = screen.releaseWindow;
+  this.destroy = function () {
+    screen.destroy();
+  }
+}
+
+function ScoreScreen() {
+  applyEmitter(this);
+  const scoreConfig = config.creditsScreen;
+  const handleSelection = () => this.emit('end', {to: 'splash'});
+  const stats = Object.assign({
+    levelNumber: 0,
+    movementInterval: 250000,
+    levelNumDots: 0,
+    levelWidth: config.level.width,
+    levelHeight: config.level.height,
+    dotPercentage: 0
+  }, StatKeeper.get());
+  const keyboardCodes = {
+    'Space': handleSelection,
+    'Enter': handleSelection,
+  }
+
+  const screen = new Screen(keyboardCodes);
+  const el = screen.getEl();
+  el.classList.add('score-screen');
+  el.appendChild(createTextEl('score-screen__title', 'PERSONAL_BEST'));
+  el.appendChild(createTextEl('score-screen__score-label', 'HIGHEST_LEVEL'));
+  el.appendChild(createTextEl('score-screen__score-value', stats.levelNumber));
+  el.appendChild(createTextEl('score-screen__score-label', 'NUMBER_OF_DOTS'));
+  el.appendChild(createTextEl('score-screen__score-value', stats.levelNumDots));
+  el.appendChild(createTextEl('score-screen__score-label', 'SCREEN_SIZE'));
+  el.appendChild(createTextEl('score-screen__score-value', `${stats.levelWidth}x${stats.levelHeight}`));
+  el.appendChild(createTextEl('score-screen__score-label', 'DOT_PERCENTAGE'));
+  el.appendChild(createTextEl('score-screen__score-value', `${Math.floor(stats.dotPercentage * 100)}%`));
+  const primaryButton = createPrimaryButton('score-screen__primary-button', {labelTag: 'OKAY', onClick: handleSelection});
+  el.appendChild(primaryButton); 
+
+  this.getEl = () => screen.getEl();
+  this.start = () => screen.bindWindow();
   this.releaseWindow = screen.releaseWindow;
   this.destroy = function () {
     screen.destroy();
@@ -645,6 +748,15 @@ function InGameScreen() {
     function levelOverlay(levelOverlayConfig) {
       return function () {
         runtime.removeEntity(snake);
+
+        StatKeeper.saveHighest({
+          levelNumber,
+          levelNumDots,
+          levelWidth,
+          levelHeight,
+          dotPercentage: levelNumDots / (levelWidth * levelHeight)
+        });
+
         const levelOverlay = new OverlayTextMenu(el, levelOverlayConfig);
         levelOverlay.once('end', e => {
           levelOverlay.destroy();
@@ -887,7 +999,8 @@ function Game(containerEl) {
   const screens = {
     splash: SplashScreen,
     ingame: InGameScreen,
-    credits: CreditsScreen
+    credits: CreditsScreen,
+    score: ScoreScreen
   }
   const InitialScreen = screens[config.initialScreen];
 
